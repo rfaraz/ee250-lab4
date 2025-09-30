@@ -1,10 +1,12 @@
-"""EE 250L Lab 04 VM Cont Chain
-Run vm_pub.py in a separate terminal on your VM."""
+"""EE 250L Lab 04 VM Start Chain
+
+Starter code taken from vm_sub.py"""
 
 # Team Members: Rida Faraz, Leyaa George
 # Github Repo: https://github.com/rfaraz/ee-250-lab3.git
 
 import paho.mqtt.client as mqtt
+import time
 
 """This function (or "callback") will be executed when this client receives 
 a connection acknowledgement packet response from the server. """
@@ -17,14 +19,10 @@ def on_connect(client, userdata, flags, rc):
 
     print("Connected to server (i.e., broker) with result code "+str(rc))
     #replace user with your USC username in all subscriptions
-    client.subscribe("faraz/ipinfo")
-    client.subscribe("faraz/date")
-    client.subscribe("faraz/time")
+    client.subscribe("faraz/pong")
     
     #Add the custom callbacks by indicating the topic and the name of the callback handle
-    client.message_callback_add("faraz/ipinfo", on_message_from_ipinfo)
-    client.message_callback_add("faraz/date", on_message_from_date)
-    client.message_callback_add("faraz/time", on_message_from_time)
+    client.message_callback_add("faraz/pong", on_message_from_pong)
 
 
 
@@ -36,14 +34,15 @@ def on_message(client, userdata, msg):
     print("Default callback - topic: " + msg.topic + "   msg: " + str(msg.payload, "utf-8"))
 
 #Custom message callback.
-def on_message_from_ipinfo(client, userdata, message):
-   print("IP callback - IP Message: "+message.payload.decode())
+def on_message_from_pong(client, userdata, message):
+   # Receive pong 
+   num = int(message.payload.decode())
+   print("Pong callback - Number: "+ str(num))
+   time.sleep(1)
 
-def on_message_from_date(client, userdata, message):
-    print("Date callback - Date: " + message.payload.decode())
-
-def on_message_from_time(client, userdata, message):
-    print("Time callback - Time: " + message.payload.decode())
+   # Increment and respond to message with ping
+   client.publish("faraz/ping", str(num + 1))
+   print("Pong callback - Sent ping")
 
 
 if __name__ == '__main__':
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     server in the event no messages have been published from or sent to this 
     client. If the connection request is successful, the callback attached to
     `client.on_connect` will be called."""    
-    client.connect(host="test.mosquitto.org", port=1883, keepalive=60)
+    client.connect(host="172.20.10.2", port=1883, keepalive=60)
 
     """In our prior labs, we did not use multiple threads per se. Instead, we
     wrote clients and servers all in separate *processes*. However, every 
@@ -76,4 +75,11 @@ if __name__ == '__main__':
     which will block forever. This function processes network traffic (socket 
     programming is used under the hood), dispatches callbacks, and handles 
     reconnecting."""
-    client.loop_forever()
+    client.loop_start()
+
+    # Do first ping
+    client.publish("faraz/ping", str(0))
+    print("First message - Number: 0")
+
+    while True:
+        time.sleep(1)

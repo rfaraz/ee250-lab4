@@ -1,26 +1,28 @@
 """EE 250L Lab 04 Starter Code
-Run vm_sub.py in a separate terminal on your VM."""
+Starter code taken from vm_sub.py"""
 
 # Team Members: Rida Faraz, Leyaa George
 # Github Repo: https://github.com/rfaraz/ee-250-lab3.git
 
 import paho.mqtt.client as mqtt
 import time
-from datetime import datetime
-import socket
 
 """This function (or "callback") will be executed when this client receives 
 a connection acknowledgement packet response from the server. """
 def on_connect(client, userdata, flags, rc):
-    print("Connected to server (i.e., broker) with result code "+str(rc))
+    client.subscribe("faraz/ping")
+    client.message_callback_add("faraz/ping", on_message_from_ping)
 
+def on_message_from_ping(client, userdata, message):
+    num = int(message.payload.decode())
+    print("Ping callback - Num: ", num)
+
+    # Increment and send back to pong subscriber
+    time.sleep(1)
+    client.publish("faraz/pong", str(num + 1))
+    print("Ping callback - Sent pong")
 
 if __name__ == '__main__':
-    #get IP address
-    ip_address=0 
-    """your code here"""
-    host = socket.gethostname()
-    ip_address = socket.gethostbyname(host)
 
     #create a client object
     client = mqtt.Client()
@@ -36,31 +38,8 @@ if __name__ == '__main__':
     client. If the connection request is successful, the callback attached to
     `client.on_connect` will be called."""
 
-    client.connect(host="test.mosquitto.org", port=1883, keepalive=60)
+    client.connect(host="172.20.10.2", port=1883, keepalive=60)
 
     """ask paho-mqtt to spawn a separate thread to handle
     incoming and outgoing mqtt messages."""
-    client.loop_start()
-    time.sleep(1)
-
-    while True:
-        #replace user with your USC username in all subscriptions
-        client.publish("faraz/ipinfo", f"{ip_address}")
-        print("Publishing ip address")
-        time.sleep(4)
-
-        #get date and time 
-        """your code here"""
-        now = datetime.now() # Get system time/date
-        date = now.strftime("%Y-%m-%d") # Format data
-        timeStr = now.strftime("%H:%M:%S") # Format time
-
-        #publish date and time in their own topics
-        """your code here"""
-        client.publish("faraz/date", f"{date}")
-        print("Publishing date")
-        time.sleep(4)
-
-        client.publish("faraz/time", f"{timeStr}")
-        print("Publishing time")
-        time.sleep(4)
+    client.loop_forever()
